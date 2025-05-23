@@ -1,0 +1,16 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Docker
+*.tar
+*.gz
+**/recordings/
+**/logs/
+
+# VSCode / JetBrains
+.vscode/
+.idea/
+
+# MacOS
+.DS_Store

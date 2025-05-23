@@ -1,0 +1,66 @@
+services:
+  node-server:
+    build:
+      context: ./node-server
+    ports:
+      - "7070:7070"
+    environment:
+      - JANUS_WS_URL=ws://janus:8188
+    depends_on:
+      - janus
+    restart: unless-stopped
+
+  janus:
+    build: ./janus
+    container_name: janus-gateway
+    ports:
+      - "8088:8088"
+      - "8188:8188"
+      - "20000-20100:20000-20100/udp"
+    volumes:
+      - ./janus/config:/opt/janus/etc/janus:ro
+    restart: unless-stopped
+    environment:
+      - JANUS_LOG_LEVEL=4
+
+  whip-client:
+    build: ./simple-whip-client
+    depends_on:
+      - node-server
+    environment:
+      URL:  http://node-server:7070/whip/endpoint/abc123
+      TOKEN: verysecret
+      AUDIO_PIPE: >-
+        audiotestsrc is-live=true wave=red-noise ! audioconvert ! audioresample !
+        queue ! opusenc ! rtpopuspay pt=100 ssrc=1 ! queue !
+        application/x-rtp,media=audio,encoding-name=OPUS,payload=100
+      VIDEO_PIPE: >-
+        videotestsrc is-live=true pattern=ball ! videoconvert ! queue !
+        vp8enc deadline=1 ! rtpvp8pay pt=96 ssrc=2 ! queue !
+        application/x-rtp,media=video,encoding-name=VP8,payload=96
+    restart: unless-stopped
+    
+  whep-client:
+    build: ./simple-whep-client
+    depends_on:
+      - node-server
+    environment:
+      URL:  http://node-server:7070/whep/endpoint/abc123
+      TOKEN: verysecret
+      AUDIO_CAPS: >-
+        application/x-rtp,media=audio,encoding-name=OPUS,clock-rate=48000,
+        encoding-params=(string)2,payload=111
+      VIDEO_CAPS: >-
+        application/x-rtp,media=video,encoding-name=VP8,clock-rate=90000,
+        payload=96
+        
+      GST_AUDIO_SINK: fakesink
+      GST_VIDEO_SINK: fakesink
+      
+      GST_PLUGIN_FEATURE_RANK: >
+        fakesink:258,fakevideosink:258,filesink:258,
+        pulsesink:0,alsasink:0,jacksink:0,osssink:0,openalsink:0,
+        autovideosink:0,autoaudiosink:0,xvimagesink:0,glimagesink:0
+    restart: unless-stopped
+
+  
