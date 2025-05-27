@@ -1,8 +1,7 @@
-# Base minima
 FROM debian:12-slim
+
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Dipendenze di build + runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     git build-essential autoconf automake libtool pkg-config \
@@ -17,14 +16,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 
 
-# Build
+# build
 WORKDIR /opt
 RUN git clone --depth 1 https://github.com/meetecho/simple-whip-client.git && \
     cd simple-whip-client && make && \
     cp whip-client /usr/local/bin && \
     cd .. && rm -rf simple-whip-client
 
-# Parametri di default (sovrascrivibili)
 ENV URL=http://node-server:7070/whip/abc123 \
     TOKEN= \
     AUDIO_PIPE="audiotestsrc is-live=true wave=red-noise ! audioconvert ! audioresample ! queue ! opusenc ! rtpopuspay pt=100 ssrc=1 ! queue ! application/x-rtp,media=audio,encoding-name=OPUS,payload=100" \
@@ -32,5 +30,4 @@ ENV URL=http://node-server:7070/whip/abc123 \
     STUN_SERVER=stun://stun.l.google.com:19302 \
     GST_DEBUG=2
 
-# Avvio
 ENTRYPOINT ["/bin/sh","-c","exec whip-client -u \"$URL\" ${TOKEN:+-t $TOKEN} -A \"$AUDIO_PIPE\" -V \"$VIDEO_PIPE\" -S \"$STUN_SERVER\""]

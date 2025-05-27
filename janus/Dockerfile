@@ -1,9 +1,7 @@
 FROM ubuntu:22.04
 
-# Evita prompt interattivi durante l'installazione
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Installa dipendenze di sistema
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -29,7 +27,7 @@ RUN apt-get update && apt-get install -y \
     meson \
     && rm -rf /var/lib/apt/lists/*
 
-# Installa libnice (versione più recente)
+# libnice
 RUN git clone https://gitlab.freedesktop.org/libnice/libnice.git \
     && cd libnice \
     && meson --prefix=/usr build \
@@ -38,7 +36,7 @@ RUN git clone https://gitlab.freedesktop.org/libnice/libnice.git \
     && cd .. \
     && rm -rf libnice
 
-# Installa libsrtp 2.x
+# libsrtp 2.x
 RUN wget https://github.com/cisco/libsrtp/archive/v2.4.2.tar.gz \
     && tar xfv v2.4.2.tar.gz \
     && cd libsrtp-2.4.2 \
@@ -48,7 +46,7 @@ RUN wget https://github.com/cisco/libsrtp/archive/v2.4.2.tar.gz \
     && cd .. \
     && rm -rf libsrtp-2.4.2 v2.4.2.tar.gz
 
-# Installa libwebsockets
+# libwebsockets
 RUN git clone https://github.com/warmcat/libwebsockets.git \
     && cd libwebsockets \
     && git checkout v4.3-stable \
@@ -63,7 +61,7 @@ RUN git clone https://github.com/warmcat/libwebsockets.git \
     && cd ../.. \
     && rm -rf libwebsockets
 
-# Installa usrsctp per Data Channels
+# usrsctp
 RUN git clone https://github.com/sctplab/usrsctp.git \
     && cd usrsctp \
     && ./bootstrap \
@@ -73,7 +71,7 @@ RUN git clone https://github.com/sctplab/usrsctp.git \
     && cd .. \
     && rm -rf usrsctp
 
-# Clona e compila Janus
+# janus
 RUN git clone https://github.com/meetecho/janus-gateway.git \
     && cd janus-gateway \
     && sh autogen.sh \
@@ -96,11 +94,9 @@ RUN git clone https://github.com/meetecho/janus-gateway.git \
     && rm -rf janus-gateway
 
 
-# Crea directory per i log
+# janus log
 RUN mkdir -p /var/log/janus
 
-# Espone le porte
 EXPOSE 8088 8188 20000-20100/udp
 
-# Comando di avvio
 CMD ["/opt/janus/bin/janus", "-F", "/opt/janus/etc/janus"]

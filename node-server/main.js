@@ -20,7 +20,7 @@ const whep = new JanusWhepServer({
   rest: { app, basePath: '/whep' }
 });
 
-// Endpoint informativo per vedere le risorse attive
+// debug
 app.get('/endpoints', (_req, res) => {
   res.json({
     whip: whip.listEndpoints(),
@@ -28,18 +28,18 @@ app.get('/endpoints', (_req, res) => {
   });
 });
 
-// Serve file statici (opzionale)
+// debug
 app.use(express.static('web'));
 
-// Avvio server HTTP
+// server
 http.createServer(app).listen(7070, async () => {
   console.log('Server avviato su http://localhost:7070');
 
-  // Avvio WHIP e WHEP
+  // WHIP e WHEP
   await whip.start();
   await whep.start();
 
-  // Crea endpoint WHIP (ingestion)
+  // endpoint WHIP
   whip.createEndpoint({
     id: 'abc123',
     room: 1234,
@@ -53,7 +53,7 @@ http.createServer(app).listen(7070, async () => {
     }
   });
 
-  // Crea endpoint WHEP (egress)
+  // endpoint WHEP
   whep.createEndpoint({
     id: 'abc123',
     mountpoint: 1,
