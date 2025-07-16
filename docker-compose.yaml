@@ -36,9 +36,9 @@ services:
       - "8089:8088"
       - "8189:8188"
       - "20051-20100:20051-20100/udp"
-      - "5002:5002/udp"  # RTP audio from videoroom
-      - "5004:5004/udp"  # RTP video from videoroom
-      - "5005:5005/udp"  # RTCP video from videoroom
+      - "5002:5002/udp" 
+      - "5004:5004/udp" 
+      - "5005:5005/udp" 
     volumes:
       - ./janus-streaming/config:/opt/janus/etc/janus:ro
     restart: unless-stopped
