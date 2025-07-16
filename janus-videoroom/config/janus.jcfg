@@ -414,7 +414,7 @@ nat: {
 # names to identify the plugins to disable. By default all available
 # plugins are enabled and loaded at startup.
 plugins: {
-  disable = "libjanus_textroom.so,libjanus_echotest.so,libjanus_recordplay.so,libjanus_nosip.so,libjanus_videocall.so,libjanus_sip.so,libjanus_audiobridge.so"
+	disable = "libjanus_streaming.so,libjanus_textroom.so,libjanus_echotest.so,libjanus_recordplay.so,libjanus_nosip.so,libjanus_videocall.so,libjanus_sip.so,libjanus_audiobridge.so"
 }
 
 

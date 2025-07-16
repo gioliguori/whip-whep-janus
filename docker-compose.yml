@@ -5,20 +5,42 @@ services:
     ports:
       - "7070:7070"
     environment:
-      - JANUS_WS_URL=ws://janus:8188
+      - JANUS_VIDEOROOM_WS_URL=ws://janus-videoroom:8188
+      - JANUS_STREAMING_WS_URL=ws://janus-streaming:8188
     depends_on:
-      - janus
+      - janus-videoroom
+      - janus-streaming
     restart: unless-stopped
 
-  janus:
-    build: ./janus
-    container_name: janus-gateway
+  janus-videoroom:
+    build:
+      context: ./janus-videoroom
+      dockerfile: Dockerfile
+    container_name: janus-videoroom
     ports:
       - "8088:8088"
       - "8188:8188"
-      - "20000-20100:20000-20100/udp"
+      - "20000-20050:20000-20050/udp"
     volumes:
-      - ./janus/config:/opt/janus/etc/janus:ro
+      - ./janus-videoroom/config:/opt/janus/etc/janus:ro
+    restart: unless-stopped
+    environment:
+      - JANUS_LOG_LEVEL=4
+
+  janus-streaming:
+    build:
+      context: ./janus-streaming
+      dockerfile: Dockerfile
+    container_name: janus-streaming
+    ports:
+      - "8089:8088"
+      - "8189:8188"
+      - "20051-20100:20051-20100/udp"
+      - "5002:5002/udp"  # RTP audio from videoroom
+      - "5004:5004/udp"  # RTP video from videoroom
+      - "5005:5005/udp"  # RTCP video from videoroom
+    volumes:
+      - ./janus-streaming/config:/opt/janus/etc/janus:ro
     restart: unless-stopped
     environment:
       - JANUS_LOG_LEVEL=4
@@ -28,7 +50,7 @@ services:
     depends_on:
       - node-server
     environment:
-      URL:  http://node-server:7070/whip/endpoint/abc123
+      URL: http://node-server:7070/whip/endpoint/abc123
       TOKEN: verysecret
       AUDIO_PIPE: >-
         audiotestsrc is-live=true wave=red-noise ! audioconvert ! audioresample !
@@ -45,7 +67,7 @@ services:
     depends_on:
       - node-server
     environment:
-      URL:  http://node-server:7070/whep/endpoint/abc123
+      URL: http://node-server:7070/whep/endpoint/abc123
       TOKEN: verysecret
       AUDIO_CAPS: >-
         application/x-rtp,media=audio,encoding-name=OPUS,clock-rate=48000,
@@ -53,14 +75,10 @@ services:
       VIDEO_CAPS: >-
         application/x-rtp,media=video,encoding-name=VP8,clock-rate=90000,
         payload=96
-        
       GST_AUDIO_SINK: fakesink
       GST_VIDEO_SINK: fakesink
-      
       GST_PLUGIN_FEATURE_RANK: >
         fakesink:258,fakevideosink:258,filesink:258,
         pulsesink:0,alsasink:0,jacksink:0,osssink:0,openalsink:0,
         autovideosink:0,autoaudiosink:0,xvimagesink:0,glimagesink:0
     restart: unless-stopped
-
-  

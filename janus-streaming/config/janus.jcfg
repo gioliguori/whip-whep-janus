@@ -283,6 +283,8 @@ media: {
 # if you do not enable ICE Lite as well), choose which interfaces should
 # be used for gathering candidates.
 nat: {
+	stun_server = "stun.l.google.com"
+	stun_port = 19302
 	#stun_server = "stun.voip.eutelia.it"
 	#stun_port = 3478
 	#nice_debug = "nice_debug option is NOT SUPPORTED ANYMORE! Please set NICE_DEBUG and G_MESSAGES_DEBUG env vars when starting Janus"
@@ -412,8 +414,9 @@ nat: {
 # names to identify the plugins to disable. By default all available
 # plugins are enabled and loaded at startup.
 plugins: {
-	#disable = "libjanus_echotest.so,libjanus_recordplay.so"
+	disable = "libjanus_textroom.so,libjanus_echotest.so,libjanus_recordplay.so,libjanus_nosip.so,libjanus_videocall.so,libjanus_sip.so,libjanus_audiobridge.so,libjanus_videoroom.so"
 }
+
 
 # You can choose which of the available transports should be enabled or
 # not. Use the 'disable' directive to prevent Janus from loading one
@@ -421,7 +424,7 @@ plugins: {
 # to identify the transports to disable. By default all available
 # transports are enabled and loaded at startup.
 transports: {
-	#disable = "libjanus_rabbitmq.so"
+  disable = "libjanus_pfunix.so"
 }
 
 # As a core feature, Janus can log either on the standard output, or to

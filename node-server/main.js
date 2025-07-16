@@ -8,19 +8,23 @@ const app = express();
 import cors from 'cors';
 app.use(cors());
 
-const janusUrl = process.env.JANUS_WS_URL || 'ws://localhost:8188';
+// Separate Janus instances
+const janusVideoroomUrl = process.env.JANUS_VIDEOROOM_WS_URL || 'ws://janus-videoroom:8188';
+const janusStreamingUrl = process.env.JANUS_STREAMING_WS_URL || 'ws://janus-streaming:8188';
 
+// WHIP server connects to videoroom instance
 const whip = new JanusWhipServer({
-  janus: { address: janusUrl },
+  janus: { address: janusVideoroomUrl },
   rest: { app, basePath: '/whip' }
 });
 
+// WHEP server connects to streaming instance  
 const whep = new JanusWhepServer({
-  janus: { address: janusUrl },
+  janus: { address: janusStreamingUrl },
   rest: { app, basePath: '/whep' }
 });
 
-// debug
+// Debug endpoints
 app.get('/endpoints', (_req, res) => {
   res.json({
     whip: whip.listEndpoints(),
@@ -28,35 +32,40 @@ app.get('/endpoints', (_req, res) => {
   });
 });
 
-// debug
+// Static files for testing
 app.use(express.static('web'));
 
-// server
+// Start server
 http.createServer(app).listen(7070, async () => {
-  console.log('Server avviato su http://localhost:7070');
+  console.log('Server started on http://localhost:7070');
+  console.log('Videoroom Janus:', janusVideoroomUrl);
+  console.log('Streaming Janus:', janusStreamingUrl);
 
-  // WHIP e WHEP
+  // Start WHIP and WHEP servers
   await whip.start();
   await whep.start();
 
-  // endpoint WHIP
+  // Create WHIP endpoint (connects to videoroom)
   whip.createEndpoint({
     id: 'abc123',
     room: 1234,
     token: 'verysecret',
     secret: 'adminpwd',
+    // RTP forwarding to streaming instance
     recipient: {
-      host: '127.0.0.1',
+      host: 'janus-streaming',  // Docker service name
       audioPort: 5002,
       videoPort: 5004,
       videoRtcpPort: 5005
     }
   });
 
-  // endpoint WHEP
+  // Create WHEP endpoint (connects to streaming)
   whep.createEndpoint({
     id: 'abc123',
     mountpoint: 1,
     token: 'verysecret'
   });
+
+  console.log('WHIP/WHEP endpoints created successfully');
 });

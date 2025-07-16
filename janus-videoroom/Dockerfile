@@ -2,6 +2,7 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Install essential dependencies only
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -9,25 +10,18 @@ RUN apt-get update && apt-get install -y \
     libmicrohttpd-dev \
     libjansson-dev \
     libssl-dev \
-    libsofia-sip-ua-dev \
     libglib2.0-dev \
-    libopus-dev \
-    libogg-dev \
-    libcurl4-openssl-dev \
-    liblua5.3-dev \
     libconfig-dev \
     pkg-config \
     libtool \
     automake \
     autoconf \
     wget \
-    python3 \
-    python3-pip \
     ninja-build \
     meson \
     && rm -rf /var/lib/apt/lists/*
 
-# libnice
+# libnice (ICE support)
 RUN git clone https://gitlab.freedesktop.org/libnice/libnice.git \
     && cd libnice \
     && meson --prefix=/usr build \
@@ -36,7 +30,7 @@ RUN git clone https://gitlab.freedesktop.org/libnice/libnice.git \
     && cd .. \
     && rm -rf libnice
 
-# libsrtp 2.x
+# libsrtp 2.x (SRTP support)
 RUN wget https://github.com/cisco/libsrtp/archive/v2.4.2.tar.gz \
     && tar xfv v2.4.2.tar.gz \
     && cd libsrtp-2.4.2 \
@@ -46,7 +40,7 @@ RUN wget https://github.com/cisco/libsrtp/archive/v2.4.2.tar.gz \
     && cd .. \
     && rm -rf libsrtp-2.4.2 v2.4.2.tar.gz
 
-# libwebsockets
+# libwebsockets (WebSocket transport)
 RUN git clone https://github.com/warmcat/libwebsockets.git \
     && cd libwebsockets \
     && git checkout v4.3-stable \
@@ -61,7 +55,7 @@ RUN git clone https://github.com/warmcat/libwebsockets.git \
     && cd ../.. \
     && rm -rf libwebsockets
 
-# usrsctp
+# usrsctp (needed for data channels in videoroom)
 RUN git clone https://github.com/sctplab/usrsctp.git \
     && cd usrsctp \
     && ./bootstrap \
@@ -71,7 +65,7 @@ RUN git clone https://github.com/sctplab/usrsctp.git \
     && cd .. \
     && rm -rf usrsctp
 
-# janus
+# Build Janus with only videoroom plugin
 RUN git clone https://github.com/meetecho/janus-gateway.git \
     && cd janus-gateway \
     && sh autogen.sh \
@@ -79,7 +73,8 @@ RUN git clone https://github.com/meetecho/janus-gateway.git \
         --prefix=/opt/janus \
         --enable-websockets \
         --enable-data-channels \
-        --enable-plugin-rtpforward \ 
+        --enable-plugin-videoroom \
+        --disable-plugin-streaming \
         --disable-plugin-videocall \
         --disable-plugin-sip \
         --disable-plugin-audiobridge \
@@ -87,16 +82,17 @@ RUN git clone https://github.com/meetecho/janus-gateway.git \
         --disable-plugin-textroom \
         --disable-plugin-echotest \
         --disable-plugin-nosip \
+        --disable-all-handlers \
+        --disable-all-loggers \
     && make \
     && make install \
-    && make configs \
     && cd .. \
     && rm -rf janus-gateway
 
-
-# janus log
+# Create log directory
 RUN mkdir -p /var/log/janus
 
+# Expose ports
 EXPOSE 8088 8188 20000-20100/udp
 
 CMD ["/opt/janus/bin/janus", "-F", "/opt/janus/etc/janus"]
