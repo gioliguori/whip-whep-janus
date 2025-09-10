@@ -38,7 +38,8 @@ services:
       - "20051-20100:20051-20100/udp"
       - "5002:5002/udp" 
       - "5004:5004/udp" 
-      - "5005:5005/udp" 
+      - "5005:5005/udp"
+      - "10000-10050:10000-10050/udp"
     volumes:
       - ./janus-streaming/config:/opt/janus/etc/janus:ro
     restart: unless-stopped
@@ -50,7 +51,7 @@ services:
     depends_on:
       - node-server
     environment:
-      URL: http://node-server:7070/whip/endpoint/abc123
+      URL: http://node-server:7070/whip/endpoint/${SESSION_ID:-abc123}
       TOKEN: verysecret
       AUDIO_PIPE: >-
         audiotestsrc is-live=true wave=red-noise ! audioconvert ! audioresample !
@@ -67,7 +68,7 @@ services:
     depends_on:
       - node-server
     environment:
-      URL: http://node-server:7070/whep/endpoint/abc123
+      URL: http://node-server:7070/whep/endpoint/${SESSION_ID:-abc123}
       TOKEN: verysecret
       AUDIO_CAPS: >-
         application/x-rtp,media=audio,encoding-name=OPUS,clock-rate=48000,
