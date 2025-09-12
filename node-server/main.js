@@ -38,6 +38,28 @@ const whep = new JanusWhepServer({
 app.use('/api/videoroom', createVideoRoomRoutes(videoRoomService));
 app.use('/api/streaming', createStreamingRoutes(streamingService));
 
+let portCounter = 0;
+const MAX_CONCURRENT_STREAMS = 10;
+const BASE_PORT = 10002;
+
+function getNextPorts() {
+  if (portCounter >= MAX_CONCURRENT_STREAMS) {
+    throw new Error(`Maximum concurrent streams reached (${MAX_CONCURRENT_STREAMS})`);
+  }
+  
+  const audioPort = BASE_PORT + (portCounter * 2);
+  const videoPort = BASE_PORT + (portCounter * 2) + 1;
+  
+  portCounter++;
+  
+  return { audioPort, videoPort };
+}
+
+function resetPortCounter() {
+  portCounter = 0;
+}
+
+
 // sessione completa
 app.post('/api/sessions', async (req, res) => {
   try {
@@ -47,12 +69,19 @@ app.post('/api/sessions', async (req, res) => {
       return res.status(400).json({ error: 'sessionId is required' });
     }
 
+    const numericId = isNaN(parseInt(sessionId)) ? 
+      Math.abs(sessionId.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0)) : 
+    parseInt(sessionId);
+
     // 1. Create VideoRoom
     const roomData = {
-      room: parseInt(sessionId),
+      room: numericId,
       description: `Session ${sessionId}`,
       secret: 'adminpwd',
-      publishers: 6,
+      publishers: 1,
       bitrate: 256000,
       fir_freq: 10,
       ...roomConfig
@@ -61,12 +90,13 @@ app.post('/api/sessions', async (req, res) => {
     const room = await videoRoomService.createRoom(roomData);
     
     // 2. Create Streaming Mountpoint
-    const basePortOffset = (parseInt(sessionId) % 100) * 10;
+
+    const { audioPort, videoPort } = getNextPorts();
     const mountpointData = {
-      id: parseInt(sessionId),
+      id: numericId,
       description: `Stream for session ${sessionId}`,
-      audioport: 5002 + basePortOffset,
-      videoport: 5004 + basePortOffset,
+      audioport: audioPort,
+      videoport: videoPort,
       secret: 'adminpwd',
       ...streamConfig
     };
@@ -100,6 +130,11 @@ app.post('/api/sessions', async (req, res) => {
       endpoints: {
         whip: `/whip/endpoint/${sessionId}`,
         whep: `/whep/endpoint/${sessionId}`
+      },
+      ports: {
+        audio: audioPort,
+        video: videoPort,
+        counter: portCounter - 1
       }
     });
     
@@ -110,6 +145,30 @@ app.post('/api/sessions', async (req, res) => {
     });
   }
 });
+
+// Port management endpoints
+app.get('/api/ports/status', (req, res) => {
+  res.json({
+    currentCounter: portCounter,
+    maxStreams: MAX_CONCURRENT_STREAMS,
+    available: MAX_CONCURRENT_STREAMS - portCounter,
+    nextPorts: portCounter < MAX_CONCURRENT_STREAMS ? {
+      audio: BASE_PORT + (portCounter * 2),
+      video: BASE_PORT + (portCounter * 2) + 1
+    } : null
+  });
+});
+
+app.post('/api/ports/reset', (req, res) => {
+  const oldCounter = portCounter;
+  resetPortCounter();
+  res.json({
+    message: 'Port counter reset',
+    oldCounter,
+    newCounter: portCounter
+  });
+});
+
 
 // Status endpoint
 app.get('/api/status', async (req, res) => {
@@ -125,6 +184,11 @@ app.get('/api/status', async (req, res) => {
       endpoints: {
         whip: whip.listEndpoints(),
         whep: whep.listEndpoints()
+      },
+      ports: {
+        counter: portCounter,
+        available: MAX_CONCURRENT_STREAMS - portCounter,
+        maxStreams: MAX_CONCURRENT_STREAMS
       }
     });
   } catch (error) {

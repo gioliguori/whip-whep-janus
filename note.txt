@@ -9,3 +9,8 @@
 
 
         http://localhost:7070/index.html?id=abc123
+
+
+        curl -X POST http://localhost:7070/api/sessions -H "Content-Type: application/json" -d '{"sessionId": "mario"}'
+
+        SESSION_ID=mario docker-compose up -d --force-recreate whip-client whep-client
